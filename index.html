@@ -1,1328 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Tails of Care - Command Center</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tektur:wght@400;600;800;900&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <style>
-    :root {
-      --primary: #3a5cbf;
-      --secondary: #4ca626;
-      --accent: #ff9800;
-      --accent-hover: #e65100;
-      --bg-dark: #0b0f19;
-      --bg-card: #131a2e;
-      --bg-input: #1e294b;
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --border-color: rgba(58, 92, 191, 0.3);
-      --font-tektur: 'Tektur', sans-serif;
-      --font-nums: 'Inter', sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: var(--font-tektur);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    /* Force Inter font for numbers & standard system numerals */
-    .font-nums, 
-    input[type="number"], 
-    input[type="date"], 
-    input[type="tel"], 
-    .puid, .date-cell, .coords, .doses, .timestamp, .money-badge {
-      font-family: var(--font-nums) !important;
-      font-variant-numeric: tabular-nums;
-    }
-
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
-    }
-
-    header {
-      background: linear-gradient(135deg, #131a2e 0%, #0b0f19 100%);
-      border-bottom: 2px solid var(--primary);
-      padding: 1.25rem 2rem;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1.5rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    }
-
-    .logo-container {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .logo-container svg {
-      fill: var(--accent);
-      filter: drop-shadow(0 0 8px rgba(255, 152, 0, 0.6));
-    }
-
-    .logo-title {
-      font-size: 1.8rem;
-      font-weight: 900;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      background: linear-gradient(to right, var(--text-main) 60%, var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .config-box {
-      background: rgba(30, 41, 75, 0.5);
-      border: 1px dashed var(--primary);
-      border-radius: 8px;
-      padding: 0.5rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      width: 100%;
-      max-width: 480px;
-    }
-
-    .config-box label {
-      font-size: 0.8rem;
-      color: var(--accent);
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .config-box input {
-      flex: 1;
-      background: var(--bg-dark);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 0.4rem 0.8rem;
-      border-radius: 4px;
-      font-size: 0.85rem;
-    }
-
-    .config-box input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    main {
-      flex: 1;
-      padding: 2rem;
-      max-width: 1600px;
-      width: 100%;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-    }
-
-    /* Tab Navigation System */
-    .tabs-nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 0.5rem;
-    }
-
-    .tab-btn {
-      background: transparent;
-      border: 2px solid transparent;
-      color: var(--text-muted);
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px 8px 0 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .tab-btn:hover {
-      color: var(--text-main);
-      background: rgba(58, 92, 191, 0.1);
-    }
-
-    .tab-btn.active {
-      color: var(--text-main);
-      border-color: var(--primary) var(--primary) var(--bg-dark) var(--primary);
-      background: var(--bg-card);
-      box-shadow: 0 -4px 10px rgba(58, 92, 191, 0.15);
-    }
-
-    .tab-btn.active[data-tab="pets"] { border-top-color: var(--primary); }
-    .tab-btn.active[data-tab="join"] { border-top-color: var(--secondary); }
-    .tab-btn.active[data-tab="donate"] { border-top-color: var(--accent); }
-    .tab-btn.active[data-tab="report"] { border-top-color: #f44336; }
-
-    /* Layout Split */
-    .workspace {
-      display: grid;
-      grid-template-columns: 38% 59%;
-      gap: 3%;
-      align-items: start;
-    }
-
-    @media (max-width: 1024px) {
-      .workspace {
-        grid-template-columns: 100%;
-        gap: 2rem;
-      }
-    }
-
-    /* Form and Panel Styles */
-    .panel {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 1.75rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    }
-
-    .panel-header {
-      margin-bottom: 1.5rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding-bottom: 0.75rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .panel-title {
-      font-size: 1.4rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    /* Action Modifiers */
-    .color-pets { color: var(--primary); }
-    .color-join { color: var(--secondary); }
-    .color-donate { color: var(--accent); }
-    .color-report { color: #f44336; }
-
-    /* Form Fields Styling */
-    .form-group {
-      margin-bottom: 1.25rem;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      background-color: var(--bg-input);
-      border: 1.5px solid var(--border-color);
-      border-radius: 6px;
-      padding: 0.75rem;
-      color: var(--text-main);
-      font-size: 0.95rem;
-      transition: all 0.2s ease;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-
-    /* Sub-tabs for quick operations inside PetsData */
-    .sub-ops-nav {
-      display: flex;
-      background: var(--bg-dark);
-      padding: 0.25rem;
-      border-radius: 6px;
-      margin-bottom: 1.5rem;
-    }
-
-    .sub-op-btn {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      padding: 0.5rem;
-      font-size: 0.8rem;
-      cursor: pointer;
-      text-transform: uppercase;
-      font-weight: 700;
-      border-radius: 4px;
-      transition: all 0.2s;
-    }
-
-    .sub-op-btn.active {
-      background: var(--primary);
-      color: #fff;
-    }
-
-    /* GPS Helper Styling */
-    .gps-wrapper {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .gps-btn {
-      background: var(--primary);
-      border: none;
-      border-radius: 6px;
-      color: white;
-      padding: 0 0.75rem;
-      cursor: pointer;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .gps-btn:hover {
-      background: #4d73e0;
-    }
-
-    /* Photo Upload System */
-    .photo-upload-zone {
-      border: 2px dashed var(--border-color);
-      border-radius: 8px;
-      padding: 1.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: rgba(30, 41, 75, 0.2);
-      position: relative;
-    }
-
-    .photo-upload-zone:hover {
-      border-color: var(--accent);
-    }
-
-    .photo-upload-zone input[type="file"] {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      opacity: 0;
-      cursor: pointer;
-    }
-
-    .photo-preview {
-      max-height: 120px;
-      max-width: 100%;
-      margin-top: 0.75rem;
-      border-radius: 6px;
-      display: none;
-    }
-
-    /* Buttons */
-    .btn {
-      width: 100%;
-      border: none;
-      border-radius: 6px;
-      padding: 0.9rem;
-      color: white;
-      font-size: 1rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.2s;
-      letter-spacing: 1px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .btn-primary { background-color: var(--primary); }
-    .btn-primary:hover { background-color: #4d73e0; }
-
-    .btn-secondary { background-color: var(--secondary); }
-    .btn-secondary:hover { background-color: #5bbd32; }
-
-    .btn-accent { background-color: var(--accent); }
-    .btn-accent:hover { background-color: var(--accent-hover); }
-
-    .btn-danger { background-color: #f44336; }
-    .btn-danger:hover { background-color: #ff5252; }
-
-    /* Database Table Panel Styling */
-    .db-panel {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      min-height: 500px;
-    }
-
-    .db-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .search-input {
-      max-width: 300px;
-    }
-
-    .refresh-btn {
-      background: transparent;
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.2s;
-    }
-
-    .refresh-btn:hover {
-      border-color: var(--accent);
-      background: rgba(255,152,0,0.1);
-    }
-
-    .table-responsive {
-      flex: 1;
-      overflow-x: auto;
-      border-radius: 8px;
-      background: rgba(11, 15, 25, 0.6);
-      border: 1px solid var(--border-color);
-      max-height: 600px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.9rem;
-    }
-
-    th {
-      background: rgba(30, 41, 75, 0.9);
-      color: var(--text-main);
-      font-weight: 700;
-      text-transform: uppercase;
-      padding: 1rem;
-      font-size: 0.8rem;
-      letter-spacing: 0.5px;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      border-bottom: 2px solid var(--primary);
-    }
-
-    td {
-      padding: 1rem;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      color: var(--text-muted);
-    }
-
-    tr:hover td {
-      background: rgba(58, 92, 191, 0.05);
-      color: var(--text-main);
-    }
-
-    /* Badge Indicators */
-    .badge {
-      display: inline-block;
-      padding: 0.25rem 0.6rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
-    .badge-success { background: rgba(76, 166, 38, 0.2); color: var(--secondary); border: 1px solid var(--secondary); }
-    .badge-warning { background: rgba(255, 152, 0, 0.2); color: var(--accent); border: 1px solid var(--accent); }
-    .badge-danger { background: rgba(244, 67, 54, 0.2); color: #f44336; border: 1px solid #f44336; }
-    .badge-info { background: rgba(58, 92, 191, 0.2); color: var(--primary); border: 1px solid var(--primary); }
-
-    .map-link {
-      color: var(--accent);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-    }
-
-    .map-link:hover {
-      text-decoration: underline;
-    }
-
-    /* Status Notifications banner */
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      padding: 1rem 1.5rem;
-      border-radius: 8px;
-      background: var(--bg-card);
-      border-left: 5px solid var(--accent);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      transform: translateY(150%);
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      z-index: 9999;
-    }
-
-    .toast.show {
-      transform: translateY(0);
-    }
-
-    .loading-overlay {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      padding: 2rem;
-      color: var(--text-muted);
-    }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid rgba(255, 152, 0, 0.1);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 1s infinite linear;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Mobile view Table Fallback card layout */
-    @media (max-width: 640px) {
-      table, thead, tbody, th, td, tr {
-        display: block;
-      }
-      
-      thead tr {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-      }
-
-      tr {
-        background: rgba(30, 41, 75, 0.3);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        padding: 0.5rem;
-      }
-
-      td {
-        border: none;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-        position: relative;
-        padding-left: 45%;
-        text-align: right;
-        min-height: 40px;
-      }
-
-      td:last-child {
-        border-bottom: 0;
-      }
-
-      td::before {
-        position: absolute;
-        top: 50%;
-        left: 1rem;
-        transform: translateY(-50%);
-        width: 40%;
-        padding-right: 10px;
-        white-space: nowrap;
-        font-weight: bold;
-        text-align: left;
-        color: var(--text-main);
-        font-size: 0.75rem;
-        text-transform: uppercase;
-      }
-
-      /* Dynamically mapping data headers via data-labels */
-      td[data-label]::before {
-        content: attr(data-label);
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Tails of Care - Data Dashboard</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tektur:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Orange Accent Palette */
+            --primary-orange: #FF7A00;
+            --hover-orange: #E56E00;
+            --light-orange: #FFF4EC;
+            --faded-orange: rgba(255, 122, 0, 0.15);
+            
+            /* Theme Colors */
+            --bg-color: #F7F9FC;
+            --card-bg: #FFFFFF;
+            --text-main: #2C3338;
+            --text-muted: #6C757D;
+            --border-color: #E2E8F0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            /* Apply Tektur everywhere by default */
+            font-family: 'Tektur', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Override for numbers */
+        .num {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.5px;
+        }
+
+        .header {
+            width: 100%;
+            background-color: var(--card-bg);
+            padding: 1.5rem 2rem;
+            text-align: center;
+            border-bottom: 4px solid var(--primary-orange);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .header h1 span {
+            color: var(--primary-orange);
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1200px;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Tabs UI */
+        .tabs-nav {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-family: 'Tektur', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .tab-btn:hover {
+            border-color: var(--primary-orange);
+            color: var(--primary-orange);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            background-color: var(--primary-orange);
+            border-color: var(--primary-orange);
+            color: white;
+            box-shadow: 0 6px 15px rgba(255, 122, 0, 0.3);
+        }
+
+        /* Table Container (Responsive) */
+        .table-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            padding: 1rem;
+            position: relative;
+            min-height: 400px;
+            overflow: hidden;
+            border-top: 4px solid var(--primary-orange);
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 8px;
+        }
+
+        /* Custom Scrollbar for the table */
+        .table-responsive::-webkit-scrollbar {
+            height: 10px;
+        }
+        .table-responsive::-webkit-scrollbar-track {
+            background: var(--bg-color);
+            border-radius: 8px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: var(--primary-orange);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px; /* Forces scrolling on small screens */
+            text-align: left;
+        }
+
+        thead {
+            background-color: var(--light-orange);
+        }
+
+        th {
+            color: var(--primary-orange);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 1.2rem 1rem;
+            border-bottom: 2px solid var(--faded-orange);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            color: var(--text-main);
+        }
+
+        tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background-color: var(--light-orange);
+        }
+
+        /* Photo Thumbnail Styling */
+        .photo-cell img {
+            max-width: 120px;
+            max-height: 80px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 2px solid var(--primary-orange);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .photo-cell img:hover {
+            transform: scale(1.5);
+            z-index: 10;
+            position: relative;
+        }
+
+        /* Loading Spinner */
+        .loader-container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--faded-orange);
+            border-top: 4px solid var(--primary-orange);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .message {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8rem; }
+            .tab-btn { padding: 0.6rem 1rem; font-size: 0.9rem; }
+        }
+    </style>
 </head>
 <body>
 
-  <header>
-    <div class="logo-container">
-      <svg width="36" height="36" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/>
-      </svg>
-      <div class="logo-title">The Tails of Care</div>
-    </div>
-    
-    <div class="config-box">
-      <label>Backend API:</label>
-      <input type="text" id="api-url" placeholder="Paste Apps Script Executable URL here..." onchange="saveApiUrl()">
-    </div>
-  </header>
+    <header class="header">
+        <h1>Tails of <span>Care</span> Dashboard</h1>
+    </header>
 
-  <main>
-    <div class="tabs-nav">
-      <button class="tab-btn active" data-tab="pets" onclick="switchTab('pets')">
-        🐾 PetsData
-      </button>
-      <button class="tab-btn" data-tab="join" onclick="switchTab('join')">
-        🤝 Join Team
-      </button>
-      <button class="tab-btn" data-tab="donate" onclick="switchTab('donate')">
-        ❤️ Donate
-      </button>
-      <button class="tab-btn" data-tab="report" onclick="switchTab('report')">
-        ⚠️ Report Incident
-      </button>
-    </div>
-
-    <div class="workspace">
-      
-      <div class="panel">
+    <main class="dashboard-container">
         
-        <div id="pets-form-container" class="tab-content">
-          <div class="panel-header">
-            <h2 class="panel-title color-pets">Pet Database Admin</h2>
-          </div>
-          
-          <div class="sub-ops-nav">
-            <button class="sub-op-btn active" onclick="switchSubOp('register')">Register New</button>
-            <button class="sub-op-btn" onclick="switchSubOp('vac')">Log Vaccine</button>
-            <button class="sub-op-btn" onclick="switchSubOp('sterilize')">Sterilization</button>
-          </div>
+        <nav class="tabs-nav" id="tabs-nav">
+            </nav>
 
-          <form id="pet-register-form" onsubmit="handleFormSubmit(event, 'register')">
-            <div class="form-row">
-              <div class="form-group">
-                <label>Unique Pet ID (PUID)</label>
-                <input type="text" name="puid" required placeholder="PET-101" class="puid">
-              </div>
-              <div class="form-group">
-                <label>Pet Name</label>
-                <input type="text" name="petName" required placeholder="Rover">
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>Microchipped?</label>
-                <select name="microchipped" id="reg-micro" onchange="toggleMicrochipField()">
-                  <option value="No">No</option>
-                  <option value="Yes">Yes</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Microchip Number</label>
-                <input type="text" name="microchipNum" id="reg-micro-num" disabled placeholder="N/A" class="font-nums">
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>Vaccinated?</label>
-                <select name="vaccinated" id="reg-vac" onchange="toggleVacField()">
-                  <option value="No">No</option>
-                  <option value="Yes">Yes</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Vaccination Date</label>
-                <input type="date" name="vacDate" id="reg-vac-date" disabled class="date-cell">
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>County</label>
-                <input type="text" name="county" required placeholder="e.g. Nairobi">
-              </div>
-              <div class="form-group">
-                <label>Subcounty</label>
-                <input type="text" name="subcounty" required placeholder="e.g. Westlands">
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>Latitude</label>
-                <input type="text" name="lat" id="reg-lat" required placeholder="-1.26" class="coords">
-              </div>
-              <div class="form-group">
-                <label>Longitude</label>
-                <div class="gps-wrapper">
-                  <input type="text" name="lng" id="reg-lng" required placeholder="36.80" class="coords">
-                  <button type="button" class="gps-btn" onclick="getCurrentLocation('reg-lat', 'reg-lng')" title="Grab Current Location">📍</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Sterilized?</label>
-              <select name="sterilized">
-                <option value="No">No</option>
-                <option value="Yes">Yes</option>
-              </select>
-            </div>
-
-            <button type="submit" class="btn btn-primary">Save Pet Entry</button>
-          </form>
-
-          <form id="pet-vac-form" onsubmit="handleFormSubmit(event, 'vac')" style="display:none;">
-            <div class="form-group">
-              <label>Unique Pet ID (PUID)</label>
-              <input type="text" name="puid" required placeholder="PET-101" class="puid">
-            </div>
-            <div class="form-group">
-              <label>New Vaccination Date</label>
-              <input type="date" name="vacDate" required class="date-cell">
-            </div>
-            <button type="submit" class="btn btn-primary">Increment & Log Dose</button>
-          </form>
-
-          <form id="pet-sterilize-form" onsubmit="handleFormSubmit(event, 'sterilize')" style="display:none;">
-            <div class="form-group">
-              <label>Search and Identify By</label>
-              <select id="sterilize-ident-type" onchange="toggleSterilizeFields()">
-                <option value="puid">Pet PUID</option>
-                <option value="microchip">Microchip Number</option>
-              </select>
-            </div>
-            <div class="form-group" id="sterilize-puid-grp">
-              <label>Unique Pet ID (PUID)</label>
-              <input type="text" name="puid" id="st-puid" placeholder="PET-101" class="puid">
-            </div>
-            <div class="form-group" id="sterilize-micro-grp" style="display:none;">
-              <label>Microchip Number</label>
-              <input type="text" name="microchipNum" id="st-micro" placeholder="98102200..." class="font-nums">
-            </div>
-            <div class="form-group">
-              <label>Sterilization Status</label>
-              <select name="sterilized" required>
-                <option value="Yes">Sterilized (Yes)</option>
-                <option value="No">Not Sterilized (No)</option>
-              </select>
-            </div>
-            <button type="submit" class="btn btn-primary">Commit Sterilization State</button>
-          </form>
-        </div>
-
-        <div id="join-form-container" class="tab-content" style="display:none;">
-          <div class="panel-header">
-            <h2 class="panel-title color-join">Volunteer Network</h2>
-          </div>
-          <form id="join-form" onsubmit="handleFormSubmit(event, 'join')">
-            <div class="form-row">
-              <div class="form-group">
-                <label>First Name</label>
-                <input type="text" name="firstName" required placeholder="Jane">
-              </div>
-              <div class="form-group">
-                <label>Last Name</label>
-                <input type="text" name="lastName" required placeholder="Doe">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Email Address</label>
-              <input type="email" name="email" required placeholder="jane.doe@gmail.com">
-            </div>
-            <div class="form-group">
-              <label>Phone Number</label>
-              <input type="tel" name="phone" required placeholder="+254..." class="font-nums">
-            </div>
-            <div class="form-group">
-              <label>Skills & Interests</label>
-              <textarea name="skillsInterests" required placeholder="Rescue transport, foster care, web developer, photography, etc."></textarea>
-            </div>
-            <button type="submit" class="btn btn-secondary">Submit Registration</button>
-          </form>
-        </div>
-
-        <div id="donate-form-container" class="tab-content" style="display:none;">
-          <div class="panel-header">
-            <h2 class="panel-title color-donate">Log Donation</h2>
-          </div>
-          <form id="donate-form" onsubmit="handleFormSubmit(event, 'donate')">
-            <div class="form-group">
-              <label>Donor Name / Anonymous</label>
-              <input type="text" name="name" required placeholder="Jane Doe">
-            </div>
-            <div class="form-group">
-              <label>Payment details & Custom Message</label>
-              <textarea name="paymentMessage" required placeholder="Logged via MPESA Ref: XYZ123. 'For the puppy care food supply!'"></textarea>
-            </div>
-            <button type="submit" class="btn btn-accent">Submit Donation Info</button>
-          </form>
-        </div>
-
-        <div id="report-form-container" class="tab-content" style="display:none;">
-          <div class="panel-header">
-            <h2 class="panel-title color-report">Submit Incident Report</h2>
-          </div>
-          <form id="report-form" onsubmit="handleFormSubmit(event, 'report')">
-            <div class="form-group">
-              <label>Your Name</label>
-              <input type="text" name="name" required placeholder="Concerned Citizen">
-            </div>
-            <div class="form-group">
-              <label>Incident Description</label>
-              <textarea name="description" required placeholder="Stray dog injured near shopping complex..."></textarea>
-            </div>
+        <section class="table-card">
             
-            <div class="form-row">
-              <div class="form-group">
-                <label>Latitude</label>
-                <input type="text" name="lat" id="rep-lat" required placeholder="-1.26" class="coords">
-              </div>
-              <div class="form-group">
-                <label>Longitude</label>
-                <div class="gps-wrapper">
-                  <input type="text" name="lng" id="rep-lng" required placeholder="36.80" class="coords">
-                  <button type="button" class="gps-btn" onclick="getCurrentLocation('rep-lat', 'rep-lng')" title="Grab Current Location">📍</button>
+            <div id="loader" class="loader-container">
+                <div class="spinner"></div>
+                <div class="num" style="color: var(--primary-orange); font-family: 'Tektur', sans-serif;">Syncing Data...</div>
+            </div>
+
+            <div class="table-responsive" id="table-wrapper">
                 </div>
-              </div>
-            </div>
 
-            <div class="form-group">
-              <label>Attach Field Photo</label>
-              <div class="photo-upload-zone">
-                <p style="font-size:0.85rem;">Click to snap/upload photo</p>
-                <input type="file" accept="image/*" onchange="convertPhotoToBase64(this)">
-                <input type="hidden" name="photo" id="report-photo-base64">
-                <img id="photo-preview-element" class="photo-preview" src="" alt="Upload Preview">
-              </div>
-            </div>
+        </section>
+    </main>
 
-            <button type="submit" class="btn btn-danger">Log Alert Incident</button>
-          </form>
-        </div>
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbySj69wB7rwwMVvEy6trQprMTZR1pcrNP2E72AJRWowTEpxbuzHchJ1ZZlUQVo86mlG/exec";
+        
+        // Define tabs corresponding to the Google Sheets Tabs
+        const TABS = ['Join', 'Donate', 'Report', 'PetsData'];
 
-      </div>
+        document.addEventListener('DOMContentLoaded', () => {
+            const nav = document.getElementById('tabs-nav');
+            
+            // Build Tab Buttons dynamically
+            TABS.forEach((tabName, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'tab-btn';
+                if (index === 0) btn.classList.add('active'); // Set first tab as active
+                btn.textContent = tabName;
+                btn.onclick = () => loadTabData(tabName, btn);
+                nav.appendChild(btn);
+            });
 
-      <div class="panel db-panel">
-        <div class="db-controls">
-          <h2 class="panel-title color-pets" id="table-display-title">Pets Database</h2>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <input type="text" id="db-search" class="search-input" placeholder="Live filter records..." onkeyup="filterTable()">
-            <button class="refresh-btn" onclick="reloadCurrentTable()">🔄 Fetch Latest</button>
-          </div>
-        </div>
-
-        <div id="table-loading" class="loading-overlay">
-          <div class="spinner"></div>
-          <div>Polling Cloud Spreadsheet...</div>
-        </div>
-
-        <div class="table-responsive">
-          <table id="data-table">
-            <thead id="table-head">
-              </thead>
-            <tbody id="table-body">
-              </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-  </main>
-
-  <div id="toast-notify" class="toast">
-    <span id="toast-message">Status update triggered successfully.</span>
-  </div>
-
-  <script>
-    let activeTab = 'pets';
-    let localCache = {
-      PetsData: [],
-      Join: [],
-      Donate: [],
-      Report: []
-    };
-
-    // Load URL Configuration on Start
-    document.addEventListener("DOMContentLoaded", () => {
-      const savedUrl = localStorage.getItem("https://script.google.com/macros/s/AKfycbySj69wB7rwwMVvEy6trQprMTZR1pcrNP2E72AJRWowTEpxbuzHchJ1ZZlUQVo86mlG/exec");
-      if (savedUrl) {
-        document.getElementById("https://script.google.com/macros/s/AKfycbySj69wB7rwwMVvEy6trQprMTZR1pcrNP2E72AJRWowTEpxbuzHchJ1ZZlUQVo86mlG/exec").value = savedUrl;
-        reloadCurrentTable();
-      } else {
-        showToast("Please configure your deployed Apps Script Web App URL to interact with the database.", true);
-      }
-    });
-
-    function saveApiUrl() {
-      const urlValue = document.getElementById("https://script.google.com/macros/s/AKfycbySj69wB7rwwMVvEy6trQprMTZR1pcrNP2E72AJRWowTEpxbuzHchJ1ZZlUQVo86mlG/exec").value.trim();
-      localStorage.setItem("https://script.google.com/macros/s/AKfycbySj69wB7rwwMVvEy6trQprMTZR1pcrNP2E72AJRWowTEpxbuzHchJ1ZZlUQVo86mlG/exec", urlValue);
-      showToast("Backend path updated.");
-      reloadCurrentTable();
-    }
-
-    function getApiUrl() {
-      return document.getElementById("https://script.google.com/macros/s/AKfycbySj69wB7rwwMVvEy6trQprMTZR1pcrNP2E72AJRWowTEpxbuzHchJ1ZZlUQVo86mlG/exec").value.trim();
-    }
-
-    // Dynamic Tab Swapper
-    function switchTab(tabId) {
-      activeTab = tabId;
-      
-      // Update Tab Navigation Selection styling
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
-      
-      // Hide and Display Form elements
-      document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
-      document.getElementById(`${tabId}-form-container`).style.display = 'block';
-
-      // Customize headers based on selection
-      const title = document.getElementById('table-display-title');
-      title.className = "panel-title";
-      
-      if (tabId === 'pets') {
-        title.classList.add('color-pets');
-        title.innerHTML = 'Pets Database';
-      } else if (tabId === 'join') {
-        title.classList.add('color-join');
-        title.innerHTML = 'Volunteers Registry';
-      } else if (tabId === 'donate') {
-        title.classList.add('color-donate');
-        title.innerHTML = 'Donation Ledger';
-      } else if (tabId === 'report') {
-        title.classList.add('color-report');
-        title.innerHTML = 'Incidents Feed';
-      }
-
-      // Refresh table context
-      reloadCurrentTable();
-    }
-
-    // Toggle sub-forms inside Pet Registration Module
-    function switchSubOp(op) {
-      document.querySelectorAll('.sub-op-btn').forEach(btn => btn.classList.remove('active'));
-      
-      const forms = ['pet-register-form', 'pet-vac-form', 'pet-sterilize-form'];
-      forms.forEach(f => document.getElementById(f).style.display = 'none');
-
-      if (op === 'register') {
-        document.querySelector('.sub-op-btn:nth-child(1)').classList.add('active');
-        document.getElementById('pet-register-form').style.display = 'block';
-      } else if (op === 'vac') {
-        document.querySelector('.sub-op-btn:nth-child(2)').classList.add('active');
-        document.getElementById('pet-vac-form').style.display = 'block';
-      } else if (op === 'sterilize') {
-        document.querySelector('.sub-op-btn:nth-child(3)').classList.add('active');
-        document.getElementById('pet-sterilize-form').style.display = 'block';
-      }
-    }
-
-    // Form Interactivity Enhancements
-    function toggleMicrochipField() {
-      const select = document.getElementById('reg-micro');
-      const input = document.getElementById('reg-micro-num');
-      if (select.value === 'Yes') {
-        input.removeAttribute('disabled');
-        input.focus();
-      } else {
-        input.setAttribute('disabled', 'true');
-        input.value = '';
-      }
-    }
-
-    function toggleVacField() {
-      const select = document.getElementById('reg-vac');
-      const input = document.getElementById('reg-vac-date');
-      if (select.value === 'Yes') {
-        input.removeAttribute('disabled');
-        input.focus();
-      } else {
-        input.setAttribute('disabled', 'true');
-        input.value = '';
-      }
-    }
-
-    function toggleSterilizeFields() {
-      const select = document.getElementById('sterilize-ident-type');
-      if (select.value === 'puid') {
-        document.getElementById('sterilize-puid-grp').style.display = 'block';
-        document.getElementById('sterilize-micro-grp').style.display = 'none';
-        document.getElementById('st-micro').value = '';
-      } else {
-        document.getElementById('sterilize-puid-grp').style.display = 'none';
-        document.getElementById('sterilize-micro-grp').style.display = 'block';
-        document.getElementById('st-puid').value = '';
-      }
-    }
-
-    // HTML5 GPS Geolocation API utility
-    function getCurrentLocation(latId, lngId) {
-      if (navigator.geolocation) {
-        showToast("Accessing device GPS coordinates...");
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            document.getElementById(latId).value = position.coords.latitude.toFixed(6);
-            document.getElementById(lngId).value = position.coords.longitude.toFixed(6);
-            showToast("Coordinates captured successfully!");
-          },
-          (error) => {
-            showToast("Failed to retrieve location: " + error.message, true);
-          }
-        );
-      } else {
-        showToast("Geolocation feature is unsupported by this browser.", true);
-      }
-    }
-
-    // Base64 file conversion for cloud report processing
-    function convertPhotoToBase64(element) {
-      const file = element.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = function() {
-          document.getElementById('report-photo-base64').value = reader.result;
-          const preview = document.getElementById('photo-preview-element');
-          preview.src = reader.result;
-          preview.style.display = 'block';
-          showToast("Photo processed and ready for transit.");
-        }
-        reader.readAsDataURL(file);
-      }
-    }
-
-    // Master Submit Router
-    async function handleFormSubmit(event, submitContext) {
-      event.preventDefault();
-      const apiUrl = getApiUrl();
-      if (!apiUrl) {
-        showToast("Config Error: Paste your API url first.", true);
-        return;
-      }
-
-      const form = event.target;
-      const formData = new FormData(form);
-      const dataPayload = {};
-
-      formData.forEach((value, key) => {
-        dataPayload[key] = value;
-      });
-
-      // Appending action properties matching App Script conditional triggers
-      if (submitContext === 'register') {
-        // Default action is pet registration; fields need to reflect target values
-        if (!dataPayload.microchipNum) dataPayload.microchipNum = "N/A";
-        if (!dataPayload.vacDate) dataPayload.vacDate = "N/A";
-      } else if (submitContext === 'vac') {
-        dataPayload.action = 'update';
-      } else if (submitContext === 'sterilize') {
-        dataPayload.action = 'updateSterilized';
-        if (document.getElementById('sterilize-ident-type').value === 'microchip') {
-          dataPayload.puid = ''; // Ensure clear identifier pathing
-        }
-      } else if (submitContext === 'join') {
-        dataPayload.action = 'join';
-      } else if (submitContext === 'donate') {
-        dataPayload.action = 'donate';
-      } else if (submitContext === 'report') {
-        dataPayload.action = 'report';
-      }
-
-      showToast("Sending packet to App Script...", false);
-
-      try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8' // Prevent CORS standard preflight rejections
-          },
-          body: JSON.stringify(dataPayload)
+            // Initialize first tab
+            loadTabData(TABS[0], nav.firstChild);
         });
 
-        const result = await response.json();
-        
-        if (result.status === "success") {
-          showToast(result.message || "Request updated successfully!");
-          form.reset();
-          
-          // Clear conditional styling hooks
-          const preview = document.getElementById('photo-preview-element');
-          if (preview) preview.style.display = 'none';
-          
-          reloadCurrentTable();
-        } else {
-          showToast("Error processing request: " + result.message, true);
-        }
-      } catch (err) {
-        showToast("Transmission Error: " + err.toString(), true);
-      }
-    }
+        // Fetch data from Google Apps Script
+        async function loadTabData(sheetName, activeBtn) {
+            // UI Updates
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if(activeBtn) activeBtn.classList.add('active');
+            
+            const tableWrap = document.getElementById('table-wrapper');
+            const loader = document.getElementById('loader');
+            
+            tableWrap.innerHTML = '';
+            loader.style.display = 'flex';
 
-    // GET Request Operations: Fetching live spreadsheet sheets
-    async function reloadCurrentTable() {
-      const apiUrl = getApiUrl();
-      if (!apiUrl) return;
+            try {
+                const response = await fetch(`${GAS_URL}?sheet=${sheetName}`);
+                const json = await response.json();
+                
+                loader.style.display = 'none';
 
-      let targetSheet = "PetsData";
-      if (activeTab === 'join') targetSheet = "Join";
-      if (activeTab === 'donate') targetSheet = "Donate";
-      if (activeTab === 'report') targetSheet = "Report";
-
-      document.getElementById('table-loading').style.display = 'flex';
-      
-      try {
-        const response = await fetch(`${apiUrl}?sheet=${targetSheet}`);
-        const result = await response.json();
-        
-        if (result.status === "success") {
-          localCache[targetSheet] = result.data || [];
-          renderTable(targetSheet, localCache[targetSheet]);
-        } else {
-          showToast("Table Fetch Failed: " + result.message, true);
-        }
-      } catch (err) {
-        showToast("Connection Interrupted: " + err.toString(), true);
-      } finally {
-        document.getElementById('table-loading').style.display = 'none';
-      }
-    }
-
-    // Creative Render Engine 
-    function renderTable(sheetName, data) {
-      const thead = document.getElementById('table-head');
-      const tbody = document.getElementById('table-body');
-      
-      thead.innerHTML = '';
-      tbody.innerHTML = '';
-
-      if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="100" style="text-align: center; padding: 2rem;">No entries found in sheet: ${sheetName}</td></tr>`;
-        return;
-      }
-
-      if (sheetName === "PetsData") {
-        // High-tech styled pet grid
-        thead.innerHTML = `
-          <tr>
-            <th>Pet Details</th>
-            <th>PUID</th>
-            <th>Microchip</th>
-            <th>Vaccination Doses</th>
-            <th>Sterilization Status</th>
-            <th>Location Details</th>
-          </tr>
-        `;
-
-        data.forEach(item => {
-          const isSterile = String(item.Sterilized).toLowerCase() === 'yes';
-          const isVac = String(item.Vaccinated).toLowerCase() === 'yes';
-          const dosesVal = parseInt(item.Doses) || 0;
-
-          // Compute vaccine health badge state
-          let vacBadge = `<span class="badge badge-danger">Unvaccinated</span>`;
-          if (isVac) {
-            if (dosesVal >= 2) {
-              vacBadge = `<span class="badge badge-success">${dosesVal} Doses (Fully Vac)</span>`;
-            } else {
-              vacBadge = `<span class="badge badge-warning">${dosesVal} Dose (Incomplete)</span>`;
+                if (json.status === 'success' && json.data && json.data.length > 0) {
+                    renderTable(json.data, sheetName);
+                } else {
+                    tableWrap.innerHTML = `<div class="message">No records found in <span>${sheetName}</span>.</div>`;
+                }
+            } catch (error) {
+                loader.style.display = 'none';
+                tableWrap.innerHTML = `<div class="message" style="color: red;">Error establishing connection: <br><span class="num">${error.message}</span></div>`;
             }
-          }
-
-          tbody.innerHTML += `
-            <tr>
-              <td data-label="Pet Details">
-                <strong style="color:var(--text-main); font-size: 1.05rem;">${item.PetName}</strong><br>
-                <span class="timestamp" style="font-size:0.75rem;">Registered: ${formatDate(item.Timestamp)}</span>
-              </td>
-              <td data-label="PUID" class="puid font-nums" style="font-weight: 700; color: var(--accent);">${item.PUID}</td>
-              <td data-label="Microchip">
-                ${item.Microchipped === 'Yes' ? `<span class="badge badge-info">${item.MicrochipNum}</span>` : `<span class="badge badge-danger">No Microchip</span>`}
-              </td>
-              <td data-label="Vaccination Details">
-                ${vacBadge}<br>
-                <span class="date-cell" style="font-size:0.75rem;">Last Dose: ${item.VacDate || 'N/A'}</span>
-              </td>
-              <td data-label="Sterilized">
-                ${isSterile ? `<span class="badge badge-success">Yes</span>` : `<span class="badge badge-warning">No</span>`}
-              </td>
-              <td data-label="Location Details">
-                <span style="font-weight: 600;">${item.Subcounty}, ${item.County}</span><br>
-                <a class="map-link coords" href="https://www.google.com/maps/search/?api=1&query=${item.Lat},${item.Lng}" target="_blank">
-                  🗺️ ${parseFloat(item.Lat).toFixed(4)}, ${parseFloat(item.Lng).toFixed(4)}
-                </a>
-              </td>
-            </tr>
-          `;
-        });
-
-      } else if (sheetName === "Join") {
-        thead.innerHTML = `
-          <tr>
-            <th>Volunteer Name</th>
-            <th>Contact Details</th>
-            <th>Skills & Special Interests</th>
-          </tr>
-        `;
-
-        data.forEach(item => {
-          tbody.innerHTML += `
-            <tr>
-              <td data-label="Volunteer Name">
-                <strong style="color:var(--text-main); font-size:1rem;">${item.FirstName} ${item.LastName}</strong>
-              </td>
-              <td data-label="Contact Details">
-                <span style="color: var(--accent);">${item.Email}</span><br>
-                <span class="font-nums" style="font-size:0.85rem;">Phone: ${item.Phone}</span>
-              </td>
-              <td data-label="Skills & Interests">
-                <p style="white-space: pre-wrap; font-size: 0.85rem; color: var(--text-muted);">${item["Skills&Interests"] || item.SkillsInterests || ''}</p>
-              </td>
-            </tr>
-          `;
-        });
-
-      } else if (sheetName === "Donate") {
-        thead.innerHTML = `
-          <tr>
-            <th>Donor Registry</th>
-            <th>Payment Log Verification</th>
-          </tr>
-        `;
-
-        data.forEach(item => {
-          tbody.innerHTML += `
-            <tr>
-              <td data-label="Donor Registry">
-                <strong style="color:var(--secondary); font-size:1.1rem; display:flex; align-items:center; gap:0.25rem;">
-                  ❤️ ${item.Name}
-                </strong>
-              </td>
-              <td data-label="Payment Verification">
-                <p style="background: rgba(19, 26, 46, 0.8); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; color: var(--text-main); font-size: 0.85rem;">
-                  ${item.PaymentMessage}
-                </p>
-              </td>
-            </tr>
-          `;
-        });
-
-      } else if (sheetName === "Report") {
-        thead.innerHTML = `
-          <tr>
-            <th>Reporter Details</th>
-            <th>Incident Log</th>
-            <th>Visual Evidence</th>
-            <th>Geolocation Coordinates</th>
-          </tr>
-        `;
-
-        data.forEach(item => {
-          // Render raw base64 or render fallback placeholder
-          let imgTag = `<em style="font-size:0.8rem; color: var(--text-muted);">No proof photo attached</em>`;
-          if (item.Photo && item.Photo.startsWith('data:image')) {
-            imgTag = `<img src="${item.Photo}" style="max-width:120px; max-height:80px; border-radius: 6px; border: 1px solid var(--border-color);" onclick="openLightBox('${item.Photo}')" title="Click to view full image">`;
-          }
-
-          tbody.innerHTML += `
-            <tr>
-              <td data-label="Reporter Details">
-                <strong>${item.Name}</strong>
-              </td>
-              <td data-label="Incident Log">
-                <p style="font-size: 0.85rem; max-width: 300px; color: var(--text-main);">${item.Description}</p>
-              </td>
-              <td data-label="Visual Evidence">
-                ${imgTag}
-              </td>
-              <td data-label="Geolocation Coordinates">
-                <a class="map-link coords" href="https://www.google.com/maps/search/?api=1&query=${item.Lat},${item.Lng}" target="_blank">
-                  ⚠️ View GPS [${parseFloat(item.Lat).toFixed(4)}, ${parseFloat(item.Lng).toFixed(4)}]
-                </a>
-              </td>
-            </tr>
-          `;
-        });
-      }
-    }
-
-    // Client Side Fuzzy Filtering Search
-    function filterTable() {
-      const searchVal = document.getElementById('db-search').value.toLowerCase();
-      const rows = document.querySelectorAll('#table-body tr');
-
-      rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        if (text.includes(searchVal)) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
         }
-      });
-    }
 
-    // Helper utilities
-    function formatDate(dateStr) {
-      if (!dateStr) return 'N/A';
-      try {
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return dateStr;
-        return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      } catch(e) {
-        return dateStr;
-      }
-    }
+        // Parse JSON array into an HTML table
+        function renderTable(data, sheetName) {
+            const tableWrap = document.getElementById('table-wrapper');
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
 
-    // Simple Popup Alert Banner (Toast)
-    function showToast(message, isError = false) {
-      const toast = document.getElementById('toast-notify');
-      const msgSpan = document.getElementById('toast-message');
-      
-      msgSpan.innerText = message;
-      toast.style.borderLeftColor = isError ? '#f44336' : 'var(--secondary)';
-      
-      toast.classList.add('show');
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 4000);
-    }
+            // Helper to wrap numbers so they bypass the Tektur font
+            const protectNumbers = (text) => {
+                if (text === null || text === undefined) return '';
+                // Regex matches any sequence of digits and wraps them in our specialized number span
+                return String(text).replace(/(\d+)/g, '<span class="num">$1</span>');
+            };
 
-    function openLightBox(base64Source) {
-      const w = window.open();
-      w.document.write(`<body style="background:#0b0f19; display:flex; justify-content:center; align-items:center; margin:0; min-height:100vh;"><img src="${base64Source}" style="max-width:95vw; max-height:95vh; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" /></body>`);
-    }
-  </script>
+            const headers = Object.keys(data[0]);
+
+            // Construct Headers
+            const trHead = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.innerHTML = protectNumbers(header);
+                trHead.appendChild(th);
+            });
+            thead.appendChild(trHead);
+
+            // Construct Rows
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                headers.forEach(key => {
+                    const td = document.createElement('td');
+                    const cellData = row[key];
+
+                    // Special Rule: Render Base64 / URL images in the Report Tab
+                    if (sheetName === 'Report' && key === 'Photo' && typeof cellData === 'string' && (cellData.startsWith('data:image') || cellData.startsWith('http'))) {
+                        td.className = 'photo-cell';
+                        td.innerHTML = `<img src="${cellData}" alt="User Uploaded Report Photo" loading="lazy">`;
+                    } 
+                    // Special Rule: Format standard ISO Date Strings
+                    else if (typeof cellData === 'string' && cellData.match(/^\d{4}-\d{2}-\d{2}T/)) {
+                        const dateObj = new Date(cellData);
+                        td.innerHTML = protectNumbers(dateObj.toLocaleString());
+                    } 
+                    // Default Rule: Output string while protecting numbers
+                    else {
+                        td.innerHTML = protectNumbers(cellData);
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            tableWrap.appendChild(table);
+        }
+    </script>
 </body>
 </html>
